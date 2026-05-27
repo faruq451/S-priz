@@ -392,65 +392,6 @@ function renderPuzzle() {
 function checkPuzzle() { if(puzzleArr.every((v,i)=>v===i)){setTimeout(()=>showOverlay(`<h2>HARİKA!</h2><p>İşte o en sevdiğim gülüşün...</p><button class="btn" onclick="doneStep(3)">DEVAM ET</button>`),400);} }
 
 let clicks=0;
-= e.touches ? e.touches[0].clientY : e.clientY;
-    return { x: clientX - rect.left, y: clientY - rect.top };
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, 260, 160);
-
-    // Arka plan yıldızlarını çiz
-    ctx.fillStyle = '#fff';
-    bgStars.forEach(s => {
-      ctx.globalAlpha = s.a;
-      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
-    });
-    ctx.globalAlpha = 1;
-
-    // Çizgileri çiz
-    ctx.strokeStyle = completed ? '#f06292' : '#fff';
-    ctx.lineWidth = completed ? 4 : 2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    ctx.beginPath();
-    for(let i=0; i<targetIdx; i++) {
-      if(i === 0) ctx.moveTo(points[i].x, points[i].y);
-      else ctx.lineTo(points[i].x, points[i].y);
-    }
-    
-    // Sürüklenen hareketli çizgi
-    if(isDragging && dragPos && !completed) {
-      ctx.lineTo(dragPos.x, dragPos.y);
-    }
-    ctx.stroke();
-
-    // Yıldız (Nokta) Çizimleri
-    points.forEach((p, i) => {
-      if(i === 6 && targetIdx < 6) return; // Bitiş noktasını en sona kadar sakla
-      
-      const isReached = i < targetIdx;
-      const isNext = i === targetIdx;
-      
-      ctx.fillStyle = completed ? '#f06292' : (isReached ? '#e91e63' : '#4dd0e1');
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, completed ? 6 : (isNext ? 8 : 5), 0, Math.PI*2);
-      ctx.fill();
-
-      // Yıldız Numaraları
-      if(!completed && i < 6) {
-        ctx.fillStyle = '#fff';
-        ctx.font = "14px 'VT323'";
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(i+1, p.x, p.y - 12);
-      }
-    });
-    
-    if(!completed) requestAnimationFrame(draw);
-  }
-
-  draw();
 
 function showStep4() {
   showOverlay(`
