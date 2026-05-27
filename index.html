@@ -605,14 +605,14 @@ function draw() {
   drawBackground(); drawPath();
   if (state.stepDone[3]) {
     drawChar(imgOmer,omer.x,omer.y,omer.w,omer.h,omer.animT,-1,'#42a5f5','Ömer');
-    // Metni 4 kısa satıra böldük, böylece balon ince uzun (kare) olacak
     if (state.showBubble) drawBubble(omer.x, omer.y - omer.h, 'İyi bayramlar\nbirtanem,\nseni çok\nseviyorum! 🌸');
   }
-  drawChar(imgPlayer,player.x,player.y,player.w,player.h,player.animT,player.facing,'#e91e63','');
+  // En sondaki '' alanını 'Dila' olarak güncelledik
+  drawChar(imgPlayer,player.x,player.y,player.w,player.h,player.animT,player.facing,'#e91e63','Dila');
   drawHeartsLayer(); drawJoystick();
   ctx.restore();
-      }
-
+}
+  
 function loop() { update(); draw(); requestAnimationFrame(loop); }
 async function init() { await loadAssets(); resize(); spawnPlayer(); loop(); }
 init();
