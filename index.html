@@ -65,7 +65,11 @@ let KIZ_ARKADAS_PNG = "https://lh3.googleusercontent.com/d/1F7sgARI3-J-a0HJS5aLE
 let OMER_PNG          = "https://lh3.googleusercontent.com/d/1GSxNLRN6rljDdapwnCgUI5ipg6WKkpDI";
 let CIM_ARKA_PLAN_PNG = "https://lh3.googleusercontent.com/d/18LHiKyND7OsVdhBPckOmJBF6t0Flffgk";
 let ADIM3_FOTOGRAF_JPG= "https://lh3.googleusercontent.com/d/1QFBKlv8wimnXq__6jGjDrysxKuVtFCV4";
+const bgMusic = new Audio("muzik.mp3");
+bgMusic.loop = true; // Müzik bitince başa sarsın
+bgMusic.volume = 0.3; // Ses çok yüksek olup rahatsız etmesin, arka planda tatlı tatlı çalsın
 
+  
 const canvas = document.getElementById('gameCanvas');
 const ctx    = canvas.getContext('2d');
 
@@ -719,15 +723,21 @@ function draw() {
 }
 
 function showStartScreen() {
-  state.paused = true; // Oyunu başlangıçta durdurur
+  state.paused = true;
   showOverlay(`
-    <h2 style="font-size: 2.2rem; color: #e91e63; margin-bottom: 15px;">SANA BİR SÜRPRİZİM VAR!</h2>
+    <h2 style="font-size: 2.2rem; color: #e91e63; margin-bottom: 15px;">SANA BİR SÜRPRİZİM VAR! 🌸</h2>
     <p style="font-size: 1.5rem; line-height: 1.4; margin-bottom: 25px;">
-      Sana özel küçük bir macera hazırladım.<br><br>
+      Sana özel küçük bir macera hazırladım birtanem.<br><br>
       Yol üzerindeki numaralı adımları sırayla takip et, görevleri tamamla ve sonundaki sürprizine ulaş! ❤️
     </p>
-    <button class="btn" onclick="hideOverlay()">MACERAYA BAŞLA</button>
+    <button class="btn" onclick="startGame()">MACERAYA BAŞLA 🚀</button>
   `);
+}
+
+// Bu yeni fonksiyon butona basıldığında müziği başlatıp ekranı kapatacak
+function startGame() {
+  bgMusic.play().catch(e => console.log("Müzik engellendi:", e));
+  hideOverlay();
 }
 
 function loop() { update(); draw(); requestAnimationFrame(loop); }
