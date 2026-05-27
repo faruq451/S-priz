@@ -123,7 +123,7 @@ function buildPath() {
 const state = { step:0, stepDone:[false,false,false,false,false], paused:false, finalTriggered:false, showBubble:false };
 const player = { x:0, y:0, w:48, h:64, speed:3.5, vx:0, vy:0, facing:1, animT:0 };
 function spawnPlayer() { player.x = waypoints[0].x; player.y = waypoints[0].y; }
-const omer = { x:0, y:0, w:48, h:64, animT:0 };
+const omer = { x:0, y:0, w:72, h:96, animT:0 };
 function placeOmer() { omer.x = waypoints[5].x + 40; omer.y = waypoints[5].y; }
 
 const hearts = [];
