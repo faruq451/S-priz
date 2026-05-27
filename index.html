@@ -353,24 +353,73 @@ function checkQ() {
 }
 
 let puzzleArr=[], selIdx=-1;
+
 function showStep3() {
   do { puzzleArr=[0,1,2,3,4,5,6,7,8].sort(()=>Math.random()-0.5); } while(puzzleArr.every((v,i)=>v===i)); selIdx=-1;
-  showOverlay(`<span class="step-badge">ADIM 3 / 5</span><h2>FOTOĞRAFI TAMAMLA</h2><p>Yerlerini değiştirmek için 2 kareye dokun.</p><div id="pGrid" class="puzzle-grid"></div>`);
+  showOverlay(`
+    <span class="step-badge" id="step3Badge">ADIM 3 / 5</span>
+    <h2 id="step3Title">FOTOĞRAFI TAMAMLA</h2>
+    <p id="step3Desc">Yerlerini değiştirmek için 2 kareye dokun.</p>
+    <div id="pGrid" class="puzzle-grid"></div>
+    <button class="btn" id="step3Btn" onclick="doneStep(3)" style="display:none; animation: popIn 0.3s ease;">DEVAM ET</button>
+  `);
   renderPuzzle();
 }
+
 function renderPuzzle() {
-  const g=document.getElementById('pGrid'); if(!g) return; g.innerHTML='';
+  const g = document.getElementById('pGrid'); 
+  if(!g) return; 
+  g.innerHTML='';
   puzzleArr.forEach((v,i) => {
-    const d=document.createElement('div'); d.className='puzzle-piece'; if(i===selIdx) d.classList.add('selected');
+    const d = document.createElement('div'); 
+    d.className='puzzle-piece'; 
+    if(i===selIdx) d.classList.add('selected');
     d.style.backgroundImage=`url('${ADIM3_FOTOGRAF_JPG||"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="}')`;
     d.style.backgroundPosition=`${(v%3)*50}% ${Math.floor(v/3)*50}%`;
-    d.onclick=()=>{ if(selIdx===-1){selIdx=i;renderPuzzle();}else{[puzzleArr[i],puzzleArr[selIdx]]=[puzzleArr[selIdx],puzzleArr[i]];selIdx=-1;renderPuzzle();checkPuzzle();} };
+    d.onclick = () => { 
+      if(selIdx===-1) {
+        selIdx=i; renderPuzzle();
+      } else {
+        [puzzleArr[i],puzzleArr[selIdx]]=[puzzleArr[selIdx],puzzleArr[i]];
+        selIdx=-1; renderPuzzle(); checkPuzzle();
+      } 
+    };
     g.appendChild(d);
   });
 }
-function checkPuzzle() { if(puzzleArr.every((v,i)=>v===i)){setTimeout(()=>showOverlay(`<h2>HARİKA!</h2><p>İşte o en sevdiğim gülüşün...</p><button class="btn" onclick="doneStep(3)">DEVAM ET</button>`),400);} }
 
-let clicks=0;
+function checkPuzzle() { 
+  if(puzzleArr.every((v,i) => v===i)){
+    // 1. Puzzle biter bitmez aradaki boşlukları sıfırla, parçaları birleştirip tam bir fotoğraf yap
+    const grid = document.getElementById('pGrid');
+    if(grid) {
+      grid.style.gap = '0px';
+      grid.style.padding = '0px';
+      grid.style.overflow = 'hidden'; // Dış kenarlar yuvarlak kalsın
+      // İç parçaların kenar yuvarlaklığını ve tıklanma özelliklerini kapat
+      Array.from(grid.children).forEach(p => { 
+        p.onclick = null; 
+        p.style.borderRadius = '0px'; 
+      });
+    }
+
+    // 2. Fotoğrafın tadını çıkarabilmesi için 1.2 saniye bekle, sonra butonu ve yazıları değiştir
+    setTimeout(() => {
+      const badge = document.getElementById('step3Badge');
+      if (badge) badge.style.display = 'none';
+      
+      const title = document.getElementById('step3Title');
+      if (title) title.textContent = 'HARİKA!';
+      
+      const desc = document.getElementById('step3Desc');
+      if (desc) desc.textContent = 'İşte o en sevdiğim gülüşün...';
+      
+      const btn = document.getElementById('step3Btn');
+      if (btn) btn.style.display = 'inline-block';
+    }, 1200); 
+  } 
+}
+
 
 function showStep4() {
   showOverlay(`
