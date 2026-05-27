@@ -734,11 +734,28 @@ function showStartScreen() {
   `);
 }
 
-// Bu yeni fonksiyon butona basıldığında müziği başlatıp ekranı kapatacak
+let gameStarted = false; // Oyunun başlayıp başlamadığını takip edeceğiz
+
+// Bu fonksiyon butona basıldığında müziği başlatıp ekranı kapatacak
 function startGame() {
+  gameStarted = true;
   bgMusic.play().catch(e => console.log("Müzik engellendi:", e));
   hideOverlay();
 }
+
+// Sekme değiştirildiğinde veya tarayıcı aşağı alındığında müziği yönet
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    // Sekme arka plandaysa müziği durdur
+    bgMusic.pause();
+  } else {
+    // Sekmeye geri dönüldüyse ve oyun çoktan başladıysa müziği devam ettir
+    if (gameStarted) {
+      bgMusic.play().catch(e => console.log("Otomatik müzik engellendi:", e));
+    }
+  }
+});
+
 
 function loop() { update(); draw(); requestAnimationFrame(loop); }
 async function init() { 
