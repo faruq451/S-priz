@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sürpriz</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'VT323', monospace; }
+  body {
+    background: #2e7d32; overflow: hidden; width: 100vw; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+  }
+  canvas { display: block; touch-action: none; image-rendering: pixelated; }
+
+  #overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s;
+  }
+  #overlay.active { opacity: 1; pointer-events: all; }
+
+  .dialog-box {
+    background: #fff9fb; border: 6px solid #000; border-radius: 16px;
+    padding: 28px 24px; max-width: 320px; width: 88%;
+    box-shadow: 0 10px 0px rgba(0,0,0,0.2);
+    text-align: center; position: relative; animation: popIn 0.3s ease;
+  }
+  @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  .step-badge {
+    display: inline-block; background: #000; color: #fff;
+    padding: 6px 14px; font-size: 1.3rem; border-radius: 8px; margin-bottom: 18px;
+  }
+  .dialog-box h2 { font-size: 2rem; color: #ad1457; margin-bottom: 10px; text-transform: uppercase; }
+  .dialog-box p { font-size: 1.5rem; color: #000; line-height: 1.2; margin-bottom: 22px; }
+
+  .dialog-box input[type=text] {
+    width: 100%; padding: 12px; border: 4px solid #000; border-radius: 8px;
+    font-size: 1.6rem; color: #000; background: #fff; outline: none; margin-bottom: 12px; text-align: center;
+  }
+  .dialog-box input[type=text]:focus { border-color: #f06292; }
+
+  .btn {
+    display: inline-block; background: #f06292; color: #000;
+    border: 6px solid #000; border-radius: 12px;
+    padding: 10px 24px; font-size: 1.7rem;
+    cursor: pointer; width: 100%; box-shadow: 0 6px 0px #000;
+    transition: transform 0.1s, box-shadow 0.1s;
+    text-transform: uppercase; font-weight: bold;
+  }
+  .btn:active { transform: translateY(6px); box-shadow: 0px 0px 0px #000; }
+  .error-msg { color: #e11d48; font-size: 1.3rem; margin-top: -6px; margin-bottom: 14px; min-height: 20px; }
+
+  .puzzle-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+    width: 250px; height: 250px; margin: 0 auto 20px; background: #000; border: 6px solid #000; border-radius: 12px; padding: 4px;
+  }
+  .puzzle-piece {
+    background-color: #f06292; background-size: 300% 300%;
+    border-radius: 6px; cursor: pointer; transition: transform 0.1s;
+  }
+  .puzzle-piece.selected { transform: scale(0.85); box-shadow: 0 0 0 4px #fff; z-index: 2; position: relative; }
+
+  .clicker-area { font-size: 5rem; user-select: none; cursor: pointer; margin-bottom: 15px; transition: transform 0.05s;}
+  .clicker-area:active { transform: scale(0.9) translateY(4px); }
+  .progress-bg { width: 100%; height: 26px; background: #fff; border: 4px solid #000; border-radius: 8px; margin-bottom: 20px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #e91e63; width: 0%; transition: width 0.1s; }
+
+  .coupon-box { border: 5px dashed #e91e63; padding: 20px 15px; background: #fff; margin-top: 5px; margin-bottom: 15px; border-radius: 12px; }
+  .coupon-title { color: #ad1457; margin-bottom: 8px; font-size: 1.8rem; text-transform: uppercase; }
+  .coupon-desc { font-size: 1.4rem; color: #000; }
+
+  #giftBtnContainer { display: none; position: fixed; bottom: 30px; left: 0; width: 100%; text-align: center; z-index: 50; }
+  #giftBtnContainer .btn { width: auto; background: #e91e63; color: #fff; box-shadow: 0 6px 0px #000; padding: 12px 30px; }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<div id="overlay"><div class="dialog-box" id="dialogBox"></div></div>
+<div id="giftBtnContainer"><button class="btn" onclick="showCoupon()">🎁 HEDİYENİ AÇ</button></div>
+
+<script>
+let KIZ_ARKADAS_PNG   = "https://lh3.googleusercontent.com/d/1WxKAmfDSWZHKIsD3NXlG33zD_q8R8eMh";
+let OMER_PNG          = "https://lh3.googleusercontent.com/d/1GSxNLRN6rljDdapwnCgUI5ipg6WKkpDI";
+let CIM_ARKA_PLAN_PNG = "https://lh3.googleusercontent.com/d/18LHiKyND7OsVdhBPckOmJBF6t0Flffgk";
+let ADIM3_FOTOGRAF_JPG= "https://lh3.googleusercontent.com/d/1QFBKlv8wimnXq__6jGjDrysxKuVtFCV4";
+
+const canvas = document.getElementById('gameCanvas');
+const ctx    = canvas.getContext('2d');
+
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+resize(); window.addEventListener('resize', () => { resize(); buildPath(); });
+
+function loadImg(src) {
+  return new Promise(res => {
+    if (!src || src === "") { res(null); return; }
+    const img = new Image();
+    img.onload = () => res(img); img.onerror = () => res(null); img.src = src;
+  });
+}
+
+let imgPlayer = null, imgOmer = null, imgBg = null, imgPhoto = null;
+async function loadAssets() {
+  const res = await Promise.all([loadImg(KIZ_ARKADAS_PNG), loadImg(OMER_PNG), loadImg(CIM_ARKA_PLAN_PNG), loadImg(ADIM3_FOTOGRAF_JPG)]);
+  imgPlayer = res[0]; imgOmer = res[1]; imgBg = res[2]; imgPhoto = res[3];
+}
+
+let waypoints = [], pathPoints = [];
+function buildPath() {
+  const W = canvas.width, H = canvas.height;
+  waypoints = [
+    { x: W * 0.50, y: H * 0.88 },
+    { x: W * 0.20, y: H * 0.72 },
+    { x: W * 0.78, y: H * 0.55 },
+    { x: W * 0.22, y: H * 0.40 },
+    { x: W * 0.76, y: H * 0.26 },
+    { x: W * 0.50, y: H * 0.18 },
+  ];
+  pathPoints = waypoints;
+}
+buildPath();
+
+const state = { step: 0, stepDone: [false,false,false,false,false], paused: false, finalTriggered: false, showBubble: false };
+const player = { x: 0, y: 0, w: 48, h: 64, speed: 3.5, vx: 0, vy: 0, facing: 1, animT: 0 };
+function spawnPlayer() { player.x = waypoints[0].x; player.y = waypoints[0].y; }
+const omer = { x: 0, y: 0, w: 48, h: 64, animT: 0 };
+function placeOmer() { omer.x = waypoints[5].x; omer.y = waypoints[5].y - 30; }
+
+const hearts = [];
+function spawnHearts() {
+  for (let i = 0; i < 25; i++) {
+    hearts.push({
+      x: omer.x, y: omer.y - 20, vx: (Math.random() - 0.5) * 8, vy: -(Math.random() * 5 + 3),
+      size: Math.random() * 15 + 8, alpha: 1,
+      color: ['#e11d48','#f43f5e','#fb7185','#fda4af'][Math.floor(Math.random()*4)],
+      rot: Math.random() * Math.PI * 2, rotV: (Math.random()-0.5)*0.1
+    });
+  }
+}
+
+function drawBackground() {
+  const W = canvas.width, H = canvas.height;
+  if (imgBg) { ctx.drawImage(imgBg, 0, 0, W, H); return; }
+  ctx.fillStyle = '#66bb6a'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = '#81c784';
+  for(let i=0; i<150; i++) { ctx.fillRect(Math.sin(i)*W, Math.cos(i*2)*H, 4, 4); }
+}
+
+function drawPath() {
+  const pts = pathPoints; if (pts.length < 2) return;
+  ctx.save();
+  ctx.lineWidth = 44; ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y+2); for (let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x, pts[i].y+2); ctx.stroke();
+  ctx.lineWidth = 40; ctx.strokeStyle = '#d4a373';
+  ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); for (let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x, pts[i].y); ctx.stroke();
+  ctx.lineWidth = 2; ctx.strokeStyle = '#bc8a5f'; ctx.setLineDash([8,8]);
+  ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); for (let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x, pts[i].y); ctx.stroke(); ctx.setLineDash([]);
+  for (let i=1; i<=5; i++) {
+    const wp = waypoints[i], done = state.stepDone[i-1];
+    ctx.save();
+    ctx.beginPath(); ctx.arc(wp.x, wp.y, 18, 0, Math.PI*2); ctx.fillStyle = '#000'; ctx.fill();
+    ctx.beginPath(); ctx.arc(wp.x, wp.y, 14, 0, Math.PI*2); ctx.fillStyle = done ? '#e91e63' : '#fff'; ctx.fill();
+    ctx.fillStyle = done ? '#fff' : '#000'; ctx.font = `20px 'VT323'`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(i, wp.x, wp.y+2);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function drawChar(img, x, y, w, h, animT, facing, color, label) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(facing, 1);
+  const bob = Math.floor(Math.sin(animT * 0.18) * 3);
+  if (img) {
+    const ratio = img.width / img.height;
+    const calculatedW = h * ratio;
+    ctx.drawImage(img, -calculatedW/2, -h + bob, calculatedW, h);
+  } else {
+    ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.beginPath(); ctx.ellipse(0, 4+bob, w*0.3, 6, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(-w*0.22, -h*0.6+bob, w*0.44, h*0.6, 8); ctx.fill();
+    ctx.fillStyle = '#ffcc80'; ctx.beginPath(); ctx.roundRect(-w*0.3, -h*0.6+bob - w*0.5, w*0.6, w*0.55, 10); ctx.fill();
+    ctx.fillStyle = '#000'; ctx.fillRect(-8, -h*0.6+bob - w*0.3, 4, 4); ctx.fillRect(4, -h*0.6+bob - w*0.3, 4, 4);
+  }
+  if (label) {
+    ctx.scale(facing, 1); ctx.font = `20px 'VT323'`; ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.strokeStyle = '#000'; ctx.lineWidth = 4; ctx.strokeText(label, 0, 15); ctx.fillText(label, 0, 15);
+  }
+  ctx.restore();
+}
+
+function drawBubble(charX, charY, text) {
+  ctx.save();
+  const pad = 12;
+  ctx.font = `18px 'VT323'`;
+  const lines = text.split('\n');
+  const tw = Math.max(...lines.map(l => ctx.measureText(l).width));
+  const bw = tw + pad*2, bh = lines.length*22 + pad*2;
+  const margin = 10;
+  // Sola yerleştir
+  let bx = charX - bw - 20;
+  let by = charY - bh/2;
+  // Ekran sınırı kontrolleri
+  if (bx < margin) bx = margin;
+  if (bx + bw > canvas.width - margin) bx = canvas.width - margin - bw;
+  if (by < margin) by = margin;
+  if (by + bh > canvas.height - margin) by = canvas.height - margin - bh;
+  // Kuyruk: balonun sağ kenarından karaktere
+  const tailX = bx + bw, tailY = by + bh/2;
+  // Gölge + kutu
+  ctx.fillStyle = '#000'; ctx.beginPath(); ctx.roundRect(bx-4, by-4, bw+8, bh+8, 10); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 8); ctx.fill();
+  // Sağ kuyruk
+  ctx.fillStyle = '#000'; ctx.beginPath(); ctx.moveTo(tailX+1, tailY-8); ctx.lineTo(tailX+14, tailY); ctx.lineTo(tailX+1, tailY+8); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(tailX, tailY-5); ctx.lineTo(tailX+9, tailY); ctx.lineTo(tailX, tailY+5); ctx.fill();
+  // Metin
+  ctx.fillStyle = '#000'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const cx = bx + bw/2;
+  lines.forEach((line, i) => { ctx.fillText(line, cx, by + pad + 11 + i*22); });
+  ctx.restore();
+}
+
+function updateHearts() {
+  for (let i = hearts.length-1; i >= 0; i--) {
+    const h = hearts[i]; h.x += h.vx; h.y += h.vy; h.vy += 0.2;
+    h.rot += h.rotV; h.alpha -= 0.01; if (h.alpha <= 0) hearts.splice(i,1);
+  }
+}
+
+function drawHeartsLayer() {
+  hearts.forEach(h => {
+    ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.rot); ctx.globalAlpha = h.alpha; ctx.fillStyle = h.color;
+    ctx.beginPath(); const s = h.size/20; ctx.scale(s,s);
+    ctx.moveTo(0,-5); ctx.bezierCurveTo(0,-10,-10,-10,-10,-2); ctx.bezierCurveTo(-10, 5, 0, 12, 0, 16); ctx.bezierCurveTo(0, 12, 10, 5, 10, -2); ctx.bezierCurveTo(10, -10, 0, -10, 0, -5); ctx.fill(); ctx.restore();
+  });
+}
+
+const joy = { active: false, id: -1, cx: 0, cy: 0, r: 50, kr: 22, dx: 0, dy: 0 };
+function setupJoystick() { joy.cx = canvas.width * 0.78; joy.cy = canvas.height * 0.84; }
+
+function drawJoystick() {
+  if (state.paused) return;
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.beginPath(); ctx.arc(joy.cx, joy.cy, joy.r, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(joy.cx, joy.cy, joy.r, 0, Math.PI*2); ctx.stroke();
+  const kx = joy.cx + joy.dx * joy.r * 0.6, ky = joy.cy + joy.dy * joy.r * 0.6;
+  ctx.fillStyle = '#e91e63'; ctx.beginPath(); ctx.arc(kx, ky, joy.kr, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(kx, ky, joy.kr, 0, Math.PI*2); ctx.stroke();
+  ctx.restore();
+}
+
+function handleTouchStart(e) {
+  e.preventDefault();
+  for (let i=0; i<e.changedTouches.length; i++) {
+    const t = e.changedTouches[i], dx = t.clientX - joy.cx, dy = t.clientY - joy.cy;
+    if (!joy.active && Math.hypot(dx,dy) < joy.r + 30) { joy.active = true; joy.id = t.identifier; updateJoy(t); }
+  }
+}
+function handleTouchMove(e) {
+  e.preventDefault();
+  for (let i=0; i<e.changedTouches.length; i++) if (e.changedTouches[i].identifier === joy.id) updateJoy(e.changedTouches[i]);
+}
+function handleTouchEnd(e) {
+  for (let i=0; i<e.changedTouches.length; i++) if (e.changedTouches[i].identifier === joy.id) { joy.active = false; joy.id = -1; joy.dx = 0; joy.dy = 0; }
+}
+function updateJoy(t) {
+  const dx = t.clientX - joy.cx, dy = t.clientY - joy.cy, dist = Math.hypot(dx,dy);
+  if (dist > 0) { joy.dx = dx/Math.max(dist,joy.r); joy.dy = dy/Math.max(dist,joy.r); } else { joy.dx=0; joy.dy=0; }
+}
+canvas.addEventListener('touchstart', handleTouchStart, {passive:false});
+canvas.addEventListener('touchmove',  handleTouchMove,  {passive:false});
+canvas.addEventListener('touchend',   handleTouchEnd,   {passive:false});
+
+function checkStepReached() {
+  for (let i=1; i<=4; i++) {
+    if (state.stepDone[i-1]) continue;
+    if (i > state.step+1) continue;
+    if (Math.hypot(player.x - waypoints[i].x, player.y - waypoints[i].y) < 38) { triggerStep(i); return; }
+  }
+}
+function getMaxAllowedY() { for (let i=1; i<=4; i++) { if (!state.stepDone[i-1]) return waypoints[i].y - 10; } return -Infinity; }
+function triggerStep(n) { state.paused = true; if (n===1) showStep1(); else if (n===2) showStep2(); else if (n===3) showStep3(); else if (n===4) showStep4(); }
+function showOverlay(html) { document.getElementById('dialogBox').innerHTML = html; document.getElementById('overlay').classList.add('active'); }
+function hideOverlay() { document.getElementById('overlay').classList.remove('active'); state.paused = false; }
+function doneStep(n) { state.stepDone[n-1] = true; state.step = n; hideOverlay(); }
+
+function showStep1() {
+  showOverlay(`<span class="step-badge">ADIM 1 / 5</span><h2>Yolculuğa Hoş Geldin</h2><p>Ömer seni bugünden +99999 kez özledi! ❤️ Yukarı doğru devam et.</p><button class="btn" onclick="doneStep(1)">DEVAM ET</button>`);
+}
+function showStep2() {
+  showOverlay(`<span class="step-badge">ADIM 2 / 5</span><h2>HAFIZA TESTİ</h2><p>İlk oynadığımız oyun hangisiydi?</p><input type="text" id="qInput" autocomplete="off"/><div class="error-msg" id="qErr"></div><button class="btn" onclick="checkQ()">CEVAPLA</button>`);
+}
+function checkQ() {
+  const v = (document.getElementById('qInput')?.value||'').trim().toLowerCase().replace(/\s+/g,'');
+  if (v === 'residentevil7') doneStep(2); else document.getElementById('qErr').textContent = 'TEKRAR DÜŞÜN :)';
+}
+
+let puzzleArr = [], selIdx = -1;
+function showStep3() {
+  do { puzzleArr = [0,1,2,3,4,5,6,7,8].sort(()=>Math.random()-0.5); } while(puzzleArr.every((v,i)=>v===i)); selIdx = -1;
+  showOverlay(`<span class="step-badge">ADIM 3 / 5</span><h2>FOTOĞRAFI TAMAMLA</h2><p>Yerlerini değiştirmek için 2 kareye dokun.</p><div id="pGrid" class="puzzle-grid"></div>`);
+  renderPuzzle();
+}
+function renderPuzzle() {
+  const g = document.getElementById('pGrid'); if(!g) return; g.innerHTML = '';
+  puzzleArr.forEach((v, i) => {
+    const d = document.createElement('div'); d.className = 'puzzle-piece'; if(i===selIdx) d.classList.add('selected');
+    d.style.backgroundImage = `url('${ADIM3_FOTOGRAF_JPG || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="}')`;
+    d.style.backgroundPosition = `${(v%3)*50}% ${Math.floor(v/3)*50}%`;
+    d.onclick = () => { if(selIdx===-1) { selIdx=i; renderPuzzle(); } else { [puzzleArr[i], puzzleArr[selIdx]] = [puzzleArr[selIdx], puzzleArr[i]]; selIdx=-1; renderPuzzle(); checkPuzzle(); } };
+    g.appendChild(d);
+  });
+}
+function checkPuzzle() { if (puzzleArr.every((v,i)=>v===i)) { setTimeout(()=>showOverlay(`<h2>HARİKA!</h2><p>İşte o en sevdiğim gülüşün...</p><button class="btn" onclick="doneStep(3)">DEVAM ET</button>`), 400); } }
+
+let clicks = 0;
+function showStep4() {
+  clicks = 0;
+  showOverlay(`<span class="step-badge">ADIM 4 / 5</span><h2>HEYECAN</h2><p>Barı tamamen doldurana kadar kalbe dokun!</p><div class="clicker-area" onclick="doClick()">🤍</div><div class="progress-bg"><div class="progress-fill" id="pFill"></div></div>`);
+}
+function doClick() {
+  clicks++; document.getElementById('pFill').style.width = Math.min(100, (clicks/30)*100) + '%';
+  document.querySelector('.clicker-area').textContent = '❤️'; setTimeout(()=>document.querySelector('.clicker-area').textContent = '🤍', 100);
+  if (clicks >= 30) { setTimeout(()=>doneStep(4), 300); }
+}
+
+function checkFinal() {
+  if (!state.stepDone[3]) return;
+  if (Math.hypot(player.x - omer.x, player.y - omer.y) < 70) {
+    state.showBubble = true;
+    if (!state.finalTriggered) { state.finalTriggered = true; spawnHearts(); setInterval(spawnHearts, 2500); setTimeout(() => { document.getElementById('giftBtnContainer').style.display = 'block'; }, 1000); }
+  } else { state.showBubble = false; }
+}
+
+function showCoupon() {
+  showOverlay(`<div class="coupon-box"><div class="coupon-title">🎁 ÖZEL KUPON</div><div class="coupon-desc">Bu kupon Dila'ya aittir. İstediği bir zaman Ömer'den 1 adet ekstra romantik yemek talep etme hakkı sağlar.</div></div><button class="btn" onclick="hideOverlay(); document.getElementById('giftBtnContainer').style.display='none';">TEŞEKKÜRLER!</button>`);
+}
+
+function update() {
+  if (state.paused) return;
+  let ix = joy.dx, iy = joy.dy; const mag = Math.hypot(ix,iy); if (mag>1) { ix/=mag; iy/=mag; }
+  player.vx = ix * player.speed; player.vy = iy * player.speed;
+  if (Math.abs(ix)>0.05 || Math.abs(iy)>0.05) { player.animT++; if (ix !== 0) player.facing = ix > 0 ? 1 : -1; }
+  let nx = player.x + player.vx, ny = player.y + player.vy, maxY = getMaxAllowedY();
+  if (ny < maxY) ny = maxY; nx = Math.max(player.w/2, Math.min(canvas.width-player.w/2, nx)); ny = Math.max(player.h/2, Math.min(canvas.height-player.h/2, ny));
+  player.x = nx; player.y = ny; omer.animT++; updateHearts(); checkStepReached(); checkFinal();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height); drawBackground(); drawPath();
+  if (state.stepDone[3]) {
+    drawChar(imgOmer, omer.x, omer.y, omer.w, omer.h, omer.animT, -1, '#42a5f5', 'Ömer');
+    if (state.showBubble) drawBubble(omer.x, omer.y - omer.h * 0.5, 'İyi bayramlar birtanem,\nseni çok seviyorum! 🌸');
+  }
+  drawChar(imgPlayer, player.x, player.y, player.w, player.h, player.animT, player.facing, '#e91e63', '');
+  drawHeartsLayer(); drawJoystick();
+}
+
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+async function init() { await loadAssets(); setupJoystick(); spawnPlayer(); placeOmer(); loop(); }
+init();
+</script>
+</body>
+</html>
