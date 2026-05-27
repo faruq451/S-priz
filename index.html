@@ -128,6 +128,9 @@ function placeOmer() { omer.x = waypoints[5].x; omer.y = waypoints[5].y; }
 
 const hearts = [];
 function spawnHearts() {
+  // Optimizasyon: Arka planda birikip oyunu kastırmaması için ekranda 75'ten fazla kalp varsa yenisini üretme
+  if (hearts.length > 75) return; 
+
   for (let i=0; i<25; i++) {
     hearts.push({
       x: omer.x, y: omer.y - 20,
