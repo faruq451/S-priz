@@ -322,9 +322,49 @@ function showOverlay(html) { document.getElementById('dialogBox').innerHTML=html
 function hideOverlay() { document.getElementById('overlay').classList.remove('active'); state.paused=false; }
 function doneStep(n) { state.stepDone[n-1]=true; state.step=n; hideOverlay(); }
 
+let step1ClickCount = 0;
+const step1Scores = [1, 5, 25, 150, 800, 4200, 18000, 45000, 80000, 99999];
+
 function showStep1() {
-  showOverlay(`<span class="step-badge">ADIM 1 / 5</span><h2>Yolculuğa Hoş Geldin</h2><p>Ömer seni bugünden +99999 kez özledi! ❤️ Yukarı doğru devam et.</p><button class="btn" onclick="doneStep(1)">DEVAM ET</button>`);
+  step1ClickCount = 0;
+  showOverlay(`
+    <span class="step-badge">ADIM 1 / 5</span>
+    <h2>Yolculuğa Hoş Geldin</h2>
+    <p>Ömer seni bugünden tam <br><span id="missScore" style="font-size: 3rem; color: #e91e63; font-weight: bold; display: inline-block; margin: 10px 0;">1</span><br> kez özledi! ❤️</p>
+    
+    <div class="clicker-area" id="step1Heart" onclick="doStep1Click()">🤍</div>
+    <button class="btn" id="step1Continue" onclick="doneStep(1)" style="display:none;">YOLCULUĞA DEVAM ET</button>
+  `);
 }
+
+function doStep1Click() {
+  step1ClickCount++;
+  
+  // Kalp tıklama efekti
+  const heartEl = document.getElementById('step1Heart');
+  if (heartEl) {
+    heartEl.textContent = '❤️';
+    setTimeout(() => { if (heartEl) heartEl.textContent = '🤍'; }, 100);
+  }
+
+  // Skoru diziden alarak katlanarak artır
+  let currentScore = 99999;
+  if (step1ClickCount < step1Scores.length) {
+    currentScore = step1Scores[step1ClickCount];
+  }
+
+  const scoreEl = document.getElementById('missScore');
+  if (scoreEl) scoreEl.textContent = currentScore;
+
+  // Hedefe ulaşıldığında butonları değiştir
+  if (currentScore >= 99999) {
+    if (heartEl) heartEl.style.display = 'none';
+    const btn = document.getElementById('step1Continue');
+    if (btn) btn.style.display = 'inline-block';
+    if (scoreEl) scoreEl.textContent = '+99999';
+  }
+}
+  
 function showStep2() {
   showOverlay(`<span class="step-badge">ADIM 2 / 5</span><h2>HAFIZA TESTİ</h2><p>İlk oynadığımız oyun hangisiydi?</p><input type="text" id="qInput" autocomplete="off"/><div class="error-msg" id="qErr"></div><button class="btn" onclick="checkQ()">CEVAPLA</button>`);
 }
