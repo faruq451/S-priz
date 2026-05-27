@@ -155,7 +155,6 @@ function drawPath() {
   const pts = pathPoints; if (pts.length < 2) return;
   ctx.save();
 
-  // Kontrol noktaları ile smooth bezier
   function drawSmoothLine(width, color, dash) {
     ctx.lineWidth = width; ctx.strokeStyle = color; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     if (dash) ctx.setLineDash(dash); else ctx.setLineDash([]);
@@ -164,11 +163,7 @@ function drawPath() {
     for (let i=0; i<pts.length-1; i++) {
       const cx = (pts[i].x + pts[i+1].x) / 2;
       const cy = (pts[i].y + pts[i+1].y) / 2;
-      if (i === 0) {
-        ctx.quadraticCurveTo(pts[i].x, pts[i].y, cx, cy);
-      } else {
-        ctx.quadraticCurveTo(pts[i].x, pts[i].y, cx, cy);
-      }
+      ctx.quadraticCurveTo(pts[i].x, pts[i].y, cx, cy);
     }
     ctx.lineTo(pts[pts.length-1].x, pts[pts.length-1].y);
     ctx.stroke();
@@ -179,13 +174,34 @@ function drawPath() {
   drawSmoothLine(2, '#bc8a5f', [8,8]);
   ctx.setLineDash([]);
 
-  // Adım daireleri
+  // Adım daireleri (Yenilenmiş şık tasarım)
   for (let i=1; i<=5; i++) {
     const wp = waypoints[i], done = state.stepDone[i-1];
     ctx.save();
-    ctx.beginPath(); ctx.arc(wp.x, wp.y, 18, 0, Math.PI*2); ctx.fillStyle = '#000'; ctx.fill();
-    ctx.beginPath(); ctx.arc(wp.x, wp.y, 14, 0, Math.PI*2); ctx.fillStyle = done ? '#e91e63' : '#fff'; ctx.fill();
-    ctx.fillStyle = done ? '#fff' : '#000'; ctx.font = `20px 'VT323'`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(i, wp.x, wp.y+2);
+    
+    // Hafif gölge ekleyelim ki buton gibi havada dursun
+    ctx.shadowColor = 'rgba(0,0,0,0.4)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetY = 4;
+
+    // Dış Beyaz Çerçeve
+    ctx.beginPath(); ctx.arc(wp.x, wp.y, 22, 0, Math.PI*2); 
+    ctx.fillStyle = '#fff'; ctx.fill();
+
+    // Gölgeyi kapatalım ki iç renge yansımasın
+    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+
+    // İç Renk (Yapıldıysa pembe, yapılmadıysa estetik koyu gri)
+    ctx.beginPath(); ctx.arc(wp.x, wp.y, 16, 0, Math.PI*2); 
+    ctx.fillStyle = done ? '#e91e63' : '#2d3436'; ctx.fill();
+    
+    // Sayı (Büyütüldü ve tam merkeze alındı)
+    ctx.fillStyle = '#fff'; 
+    ctx.font = `bold 24px 'VT323'`; 
+    ctx.textAlign = 'center'; 
+    ctx.textBaseline = 'middle'; 
+    ctx.fillText(i, wp.x, wp.y + 2); // Font anatomisinden dolayı +2 merkeze oturtur
+    
     ctx.restore();
   }
   ctx.restore();
@@ -659,16 +675,39 @@ function draw() {
   ctx.save();
   ctx.clearRect(0,0,LW(),LH());
   drawBackground(); drawPath();
+
+  // --- SİHİRLİ ORMAN ATMOSFERİ (Kenar Karartması - Vignette) ---
+  const W = LW(), H = LH();
+  const grad = ctx.createRadialGradient(W/2, H/2, W*0.3, W/2, H/2, Math.max(W,H)*0.8);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');       // Ortalar aydınlık
+  grad.addColorStop(1, 'rgba(0,0,0,0.6)');     // Kenarlar karanlık
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,W,H);
+
   if (state.stepDone[3]) {
     drawChar(imgOmer,omer.x,omer.y,omer.w,omer.h,omer.animT,-1,'#42a5f5','Ömer');
     if (state.showBubble) drawBubble(omer.x, omer.y - omer.h, 'İyi bayramlar\nbirtanem,\nseni çok\nseviyorum! 🌸');
   }
-  // En sondaki '' alanını 'Dila' olarak güncelledik
   drawChar(imgPlayer,player.x,player.y,player.w,player.h,player.animT,player.facing,'#e91e63','Dila');
+
+  // --- UÇUŞAN ATEŞ BÖCEKLERİ (Fireflies) ---
+  const time = Date.now() * 0.001;
+  ctx.fillStyle = '#ffeb3b'; // Parlak sarı
+  for(let i=0; i<35; i++) {
+    // Parçacıkların rüzgarda uçuşma matematiği
+    const fx = ((Math.sin(time*0.5+i)*W*0.5 + Math.cos(i*112)*W) % W + W) % W;
+    const fy = ((Math.cos(time*0.3+i*3)*H*0.5 + Math.sin(i*31)*H) % H + H) % H;
+    // Kendi kendine yanıp sönme (Pulse)
+    ctx.globalAlpha = (Math.sin(time*3+i)+1)*0.5 * 0.8; 
+    ctx.beginPath(); ctx.arc(fx, fy, Math.random()*1.5 + 1, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // -----------------------------------------
+
   drawHeartsLayer(); drawJoystick();
   ctx.restore();
 }
-  
+
 function loop() { update(); draw(); requestAnimationFrame(loop); }
 async function init() { await loadAssets(); resize(); spawnPlayer(); loop(); }
 init();
