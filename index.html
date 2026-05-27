@@ -212,57 +212,31 @@ function drawChar(img, x, y, w, h, animT, facing, color, label) {
 
 function drawBubble(charX, charY, text) {
   ctx.save();
-  const pad = 12;
-  ctx.font = `18px 'VT323'`;
+  const pad = 16;
+  ctx.font = `20px 'VT323'`; // Yazıyı çok az büyüttüm kareye daha iyi otursun
   const lines = text.split('\n');
   const tw = Math.max(...lines.map(l => ctx.measureText(l).width));
   const bw = tw + pad*2, bh = lines.length*22 + pad*2;
   const margin = 10;
-  const W = LW(), H = LH();
-
-  // Daima sola yerleştir ve kafanın biraz üzerinde tut ki karakteri kapatmasın
-  let bx = charX - bw - 15;
+  
+  // Balonu karakterin sol üstüne yerleştiriyoruz
+  let bx = charX - bw - 10;
   let by = charY - bh - 10; 
 
-  // Ekranın solundan taşarsa sola daya (sağa fırlatma kuralı iptal edildi)
   if (bx < margin) bx = margin;
-  
-  // Ekranın üstünden taşarsa üste daya
   if (by < margin) by = margin;
 
-  // Arka plan gölgesi ve balonun kendisi
-  ctx.fillStyle = '#000'; ctx.beginPath(); ctx.roundRect(bx-4, by-4, bw+8, bh+8, 10); ctx.fill();
-  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 8); ctx.fill();
+  // Siyah gölge ve beyaz arka plan (Kuyruk kodları tamamen silindi)
+  ctx.fillStyle = '#000'; ctx.beginPath(); ctx.roundRect(bx-4, by-4, bw+8, bh+8, 12); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 10); ctx.fill();
 
-  // Dinamik Kuyruk: Balonun neresinde olursa olsun Ömer'in kafasına (charX, charY) doğru uzanacak
-  let tailStartX = bx + bw - 15; 
-  // Eğer ekran darlığından balon çok solda kalırsa kuyruğun mantıksız bir yerden çıkmasını engelle
-  if (tailStartX > charX - 10) tailStartX = charX - 15;
-
-  const tailY = by + bh;
-
-  // Dış siyah kuyruk
-  ctx.fillStyle = '#000';
-  ctx.beginPath();
-  ctx.moveTo(tailStartX, tailY - 2);
-  ctx.lineTo(charX, charY + 5); // Karakterin kafasına tam hizalı
-  ctx.lineTo(tailStartX - 16, tailY - 2);
-  ctx.fill();
-
-  // İç beyaz kuyruk
-  ctx.fillStyle = '#fff';
-  ctx.beginPath();
-  ctx.moveTo(tailStartX - 2, tailY - 3);
-  ctx.lineTo(charX - 1, charY + 2);
-  ctx.lineTo(tailStartX - 14, tailY - 3);
-  ctx.fill();
-
-  // Metinleri yerleştirme
+  // Metni yazdır
   ctx.fillStyle = '#000'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   const cx = bx + bw/2;
   lines.forEach((line, i) => { ctx.fillText(line, cx, by + pad + 11 + i*22); });
   ctx.restore();
 }
+
 
 function updateHearts() {
   for (let i=hearts.length-1; i>=0; i--) {
@@ -631,12 +605,13 @@ function draw() {
   drawBackground(); drawPath();
   if (state.stepDone[3]) {
     drawChar(imgOmer,omer.x,omer.y,omer.w,omer.h,omer.animT,-1,'#42a5f5','Ömer');
-    if (state.showBubble) drawBubble(omer.x, omer.y - omer.h, 'İyi bayramlar birtanem,\nseni çok seviyorum! 🌸');
+    // Metni 4 kısa satıra böldük, böylece balon ince uzun (kare) olacak
+    if (state.showBubble) drawBubble(omer.x, omer.y - omer.h, 'İyi bayramlar\nbirtanem,\nseni çok\nseviyorum! 🌸');
   }
   drawChar(imgPlayer,player.x,player.y,player.w,player.h,player.animT,player.facing,'#e91e63','');
   drawHeartsLayer(); drawJoystick();
   ctx.restore();
-}
+      }
 
 function loop() { update(); draw(); requestAnimationFrame(loop); }
 async function init() { await loadAssets(); resize(); spawnPlayer(); loop(); }
