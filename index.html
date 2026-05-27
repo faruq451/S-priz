@@ -330,15 +330,20 @@ function doStep1Click() {
   const scoreEl = document.getElementById('missScore');
   if (scoreEl) scoreEl.textContent = currentScore;
 
-  // Hedefe ulaşıldığında butonları değiştir
+  // Hedefe ulaşıldığında işlemleri yap
   if (currentScore >= 99999) {
+    // 1. Kalbi anında gizle (tıklama boşa düşsün)
     if (heartEl) heartEl.style.display = 'none';
-    const btn = document.getElementById('step1Continue');
-    if (btn) btn.style.display = 'inline-block';
     if (scoreEl) scoreEl.textContent = '+99999';
+
+    // 2. Butonu hemen gösterme! Kullanıcının okuyabilmesi için 2.5 saniye (2500ms) bekle
+    setTimeout(() => {
+      const btn = document.getElementById('step1Continue');
+      if (btn) btn.style.display = 'inline-block';
+    }, 2500); 
   }
 }
-  
+
 function showStep2() {
   showOverlay(`<span class="step-badge">ADIM 2 / 5</span><h2>HAFIZA TESTİ</h2><p>İlk oynadığımız oyun hangisiydi?</p><input type="text" id="qInput" autocomplete="off"/><div class="error-msg" id="qErr"></div><button class="btn" onclick="checkQ()">CEVAPLA</button>`);
 }
