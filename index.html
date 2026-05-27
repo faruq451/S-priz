@@ -393,13 +393,170 @@ function checkPuzzle() { if(puzzleArr.every((v,i)=>v===i)){setTimeout(()=>showOv
 
 let clicks=0;
 function showStep4() {
-  clicks=0;
-  showOverlay(`<span class="step-badge">ADIM 4 / 5</span><h2>HEYECAN</h2><p>Barı tamamen doldurana kadar kalbe dokun!</p><div class="clicker-area" onclick="doClick()">🤍</div><div class="progress-bg"><div class="progress-fill" id="pFill"></div></div>`);
+  showOverlay(`
+    <span class="step-badge">ADIM 4 / 5</span>
+    <h2>YILDIZLARI BİRLEŞTİR</h2>
+    <p>1'den başlayarak yıldızları sırayla çizerek birleştir!</p>
+    <div style="position:relative; width:260px; height:160px; margin: 0 auto 20px; border:4px solid #000; border-radius:12px; background:#0b0c10; overflow:hidden;">
+      <canvas id="starCanvas" width="260" height="160" style="position:absolute; inset:0; z-index:2; touch-action:none;"></canvas>
+      <div id="starText" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#f06292; font-size:3rem; text-shadow: 0 0 15px #f06292; font-weight:bold; opacity:0; transition: opacity 1.5s ease; z-index:1;">
+        D ❤️ Ö
+      </div>
+    </div>
+    <button class="btn" id="step4Continue" onclick="doneStep(4)" style="display:none; animation: popIn 0.3s ease;">DEVAM ET</button>
+  `);
+  
+  setTimeout(initStars, 50);
 }
-function doClick() {
-  clicks++; document.getElementById('pFill').style.width=Math.min(100,(clicks/30)*100)+'%';
-  document.querySelector('.clicker-area').textContent='❤️'; setTimeout(()=>{ const el=document.querySelector('.clicker-area'); if(el) el.textContent='🤍'; },100);
-  if(clicks>=30){setTimeout(()=>doneStep(4),300);}
+
+function initStars() {
+  const cvs = document.getElementById('starCanvas');
+  if(!cvs) return;
+  const ctx = cvs.getContext('2d');
+
+  // Kalp şeklini oluşturan koordinatlar
+  const points = [
+    {x: 130, y: 140}, // 1 - Alt Nokta
+    {x: 60, y: 80},   // 2 - Sol Alt
+    {x: 60, y: 30},   // 3 - Sol Üst
+    {x: 130, y: 60},  // 4 - Orta Çukur
+    {x: 200, y: 30},  // 5 - Sağ Üst
+    {x: 200, y: 80},  // 6 - Sağ Alt
+    {x: 130, y: 140}  // 7 - Alt Nokta (Birleşme)
+  ];
+
+  let targetIdx = 1; // Gidilecek hedef yıldız
+  let isDragging = false;
+  let dragPos = null;
+  let completed = false;
+
+  // Arka plan süs yıldızları
+  const bgStars = Array.from({length: 40}, () => ({
+    x: Math.random()*260, 
+    y: Math.random()*160, 
+    r: Math.random()*1.5, 
+    a: Math.random()*0.5 + 0.2
+  }));
+
+  function getPos(e) {
+    const rect = cvs.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, 260, 160);
+
+    // Arka plan yıldızlarını çiz
+    ctx.fillStyle = '#fff';
+    bgStars.forEach(s => {
+      ctx.globalAlpha = s.a;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+
+    // Çizgileri çiz
+    ctx.strokeStyle = completed ? '#f06292' : '#fff';
+    ctx.lineWidth = completed ? 4 : 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    ctx.beginPath();
+    for(let i=0; i<targetIdx; i++) {
+      if(i === 0) ctx.moveTo(points[i].x, points[i].y);
+      else ctx.lineTo(points[i].x, points[i].y);
+    }
+    
+    // Sürüklenen hareketli çizgi
+    if(isDragging && dragPos && !completed) {
+      ctx.lineTo(dragPos.x, dragPos.y);
+    }
+    ctx.stroke();
+
+    // Yıldız (Nokta) Çizimleri
+    points.forEach((p, i) => {
+      if(i === 6 && targetIdx < 6) return; // Bitiş noktasını en sona kadar sakla
+      
+      const isReached = i < targetIdx;
+      const isNext = i === targetIdx;
+      
+      ctx.fillStyle = completed ? '#f06292' : (isReached ? '#e91e63' : '#4dd0e1');
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, completed ? 6 : (isNext ? 8 : 5), 0, Math.PI*2);
+      ctx.fill();
+
+      // Yıldız Numaraları
+      if(!completed && i < 6) {
+        ctx.fillStyle = '#fff';
+        ctx.font = "14px 'VT323'";
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(i+1, p.x, p.y - 12);
+      }
+    });
+    
+    if(!completed) requestAnimationFrame(draw);
+  }
+
+  draw();
+
+  function handleStart(e) {
+    if(completed) return;
+    const pos = getPos(e);
+    const lastP = points[targetIdx - 1];
+    // Sadece aktif noktanın yakınından çizime başlanabilir
+    if(Math.hypot(pos.x - lastP.x, pos.y - lastP.y) < 30) {
+      isDragging = true;
+      dragPos = pos;
+      e.preventDefault();
+    }
+  }
+
+  function handleMove(e) {
+    if(!isDragging || completed) return;
+    e.preventDefault();
+    dragPos = getPos(e);
+    
+    const nextP = points[targetIdx];
+    // Hedef yıldıza ulaşıldıysa yuvaya oturt
+    if(Math.hypot(dragPos.x - nextP.x, dragPos.y - nextP.y) < 20) {
+      targetIdx++;
+      if(targetIdx === points.length) {
+        completed = true;
+        isDragging = false;
+        draw(); // Tamamlanmış parlak halini son kez çizdir
+        finishGame();
+      }
+    }
+  }
+
+  function handleEnd() { isDragging = false; dragPos = null; }
+
+  // Fare Eventleri (Test için)
+  cvs.addEventListener('mousedown', handleStart);
+  cvs.addEventListener('mousemove', handleMove);
+  cvs.addEventListener('mouseup', handleEnd);
+  cvs.addEventListener('mouseleave', handleEnd);
+  
+  // Dokunmatik Eventler (Mobil)
+  cvs.addEventListener('touchstart', handleStart, {passive:false});
+  cvs.addEventListener('touchmove', handleMove, {passive:false});
+  cvs.addEventListener('touchend', handleEnd);
+}
+
+function finishGame() {
+  const cvs = document.getElementById('starCanvas');
+  cvs.style.transition = 'opacity 1.5s ease';
+  cvs.style.opacity = '0.2'; // Çizgiler silikleşir
+  
+  // D <3 Ö yazısı belirir
+  document.getElementById('starText').style.opacity = '1';
+  
+  // Devam butonu gelir
+  setTimeout(() => {
+    document.getElementById('step4Continue').style.display = 'inline-block';
+  }, 1000);
 }
 
 function checkFinal() {
