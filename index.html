@@ -210,7 +210,6 @@ function drawChar(img, x, y, w, h, animT, facing, color, label) {
   ctx.restore();
 }
 
-// Balon: karakterin SOL yanında, kafasının hizasında
 function drawBubble(charX, charY, text) {
   ctx.save();
   const pad = 12;
@@ -221,26 +220,44 @@ function drawBubble(charX, charY, text) {
   const margin = 10;
   const W = LW(), H = LH();
 
-  // Sola yerleştir, kafasının hizasında
-  let bx = charX - bw - 20;
-  let by = charY - bh - 10; // kafanın üst hizası
+  // Daima sola yerleştir ve kafanın biraz üzerinde tut ki karakteri kapatmasın
+  let bx = charX - bw - 15;
+  let by = charY - bh - 10; 
 
-  // Sınır kontrolleri
-  if (bx < margin) bx = charX + 20; // solda yer yoksa sağa al
-  if (bx + bw > W - margin) bx = W - margin - bw;
+  // Ekranın solundan taşarsa sola daya (sağa fırlatma kuralı iptal edildi)
+  if (bx < margin) bx = margin;
+  
+  // Ekranın üstünden taşarsa üste daya
   if (by < margin) by = margin;
-  if (by + bh > H - margin) by = H - margin - bh;
 
-  // Kuyruk: balonun sağ alt köşesinden karaktere
-  const tailX = bx + bw;
-  const tailY = by + bh;
-
+  // Arka plan gölgesi ve balonun kendisi
   ctx.fillStyle = '#000'; ctx.beginPath(); ctx.roundRect(bx-4, by-4, bw+8, bh+8, 10); ctx.fill();
   ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 8); ctx.fill();
-  // Kuyruk
-  ctx.fillStyle = '#000'; ctx.beginPath(); ctx.moveTo(tailX-2, tailY-2); ctx.lineTo(tailX+14, tailY+10); ctx.lineTo(tailX-10, tailY+2); ctx.fill();
-  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(tailX-2, tailY-2); ctx.lineTo(tailX+8, tailY+6); ctx.lineTo(tailX-7, tailY+1); ctx.fill();
 
+  // Dinamik Kuyruk: Balonun neresinde olursa olsun Ömer'in kafasına (charX, charY) doğru uzanacak
+  let tailStartX = bx + bw - 15; 
+  // Eğer ekran darlığından balon çok solda kalırsa kuyruğun mantıksız bir yerden çıkmasını engelle
+  if (tailStartX > charX - 10) tailStartX = charX - 15;
+
+  const tailY = by + bh;
+
+  // Dış siyah kuyruk
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.moveTo(tailStartX, tailY - 2);
+  ctx.lineTo(charX, charY + 5); // Karakterin kafasına tam hizalı
+  ctx.lineTo(tailStartX - 16, tailY - 2);
+  ctx.fill();
+
+  // İç beyaz kuyruk
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.moveTo(tailStartX - 2, tailY - 3);
+  ctx.lineTo(charX - 1, charY + 2);
+  ctx.lineTo(tailStartX - 14, tailY - 3);
+  ctx.fill();
+
+  // Metinleri yerleştirme
   ctx.fillStyle = '#000'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   const cx = bx + bw/2;
   lines.forEach((line, i) => { ctx.fillText(line, cx, by + pad + 11 + i*22); });
