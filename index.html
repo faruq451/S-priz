@@ -708,9 +708,28 @@ function draw() {
   ctx.restore();
 }
 
+function showStartScreen() {
+  state.paused = true; // Oyunu başlangıçta durdurur
+  showOverlay(`
+    <h2 style="font-size: 2.2rem; color: #e91e63; margin-bottom: 15px;">SANA BİR SÜRPRİZİM VAR!</h2>
+    <p style="font-size: 1.5rem; line-height: 1.4; margin-bottom: 25px;">
+      Sana özel küçük bir macera hazırladım.<br><br>
+      Yol üzerindeki numaralı adımları sırayla takip et, görevleri tamamla ve sonundaki sürprizine ulaş! ❤️
+    </p>
+    <button class="btn" onclick="hideOverlay()">MACERAYA BAŞLA</button>
+  `);
+}
+
 function loop() { update(); draw(); requestAnimationFrame(loop); }
-async function init() { await loadAssets(); resize(); spawnPlayer(); loop(); }
+async function init() { 
+  await loadAssets(); 
+  resize(); 
+  spawnPlayer(); 
+  showStartScreen(); // Oyun açılır açılmaz giriş ekranını tetikler
+  loop(); 
+}
 init();
+
 </script>
 </body>
 </html>
