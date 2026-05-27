@@ -123,7 +123,7 @@ function buildPath() {
 const state = { step:0, stepDone:[false,false,false,false,false], paused:false, finalTriggered:false, showBubble:false };
 const player = { x:0, y:0, w:48, h:64, speed:3.5, vx:0, vy:0, facing:1, animT:0 };
 function spawnPlayer() { player.x = waypoints[0].x; player.y = waypoints[0].y; }
-const omer = { x:0, y:0, w:72, h:96, animT:0 };
+const omer = { x:0, y:0, w:56, h:76, animT:0 };
 function placeOmer() { omer.x = waypoints[5].x + 40; omer.y = waypoints[5].y; }
 
 const hearts = [];
@@ -212,24 +212,24 @@ function drawChar(img, x, y, w, h, animT, facing, color, label) {
   }
   ctx.restore();
 }
-
+  
 function drawBubble(charX, charY, text) {
   ctx.save();
   const pad = 16;
-  ctx.font = `20px 'VT323'`; // Yazıyı çok az büyüttüm kareye daha iyi otursun
+  ctx.font = `20px 'VT323'`;
   const lines = text.split('\n');
   const tw = Math.max(...lines.map(l => ctx.measureText(l).width));
   const bw = tw + pad*2, bh = lines.length*22 + pad*2;
   const margin = 10;
   
-  // Balonu karakterin sol üstüne yerleştiriyoruz
-  let bx = charX - bw - 10;
+  // Balonu karakterin daha da soluna alıyoruz (aradaki boşluğu 10'dan 30'a çıkardık)
+  let bx = charX - bw - 30;
   let by = charY - bh - 10; 
 
   if (bx < margin) bx = margin;
   if (by < margin) by = margin;
 
-  // Siyah gölge ve beyaz arka plan (Kuyruk kodları tamamen silindi)
+  // Siyah gölge ve beyaz arka plan
   ctx.fillStyle = '#000'; ctx.beginPath(); ctx.roundRect(bx-4, by-4, bw+8, bh+8, 12); ctx.fill();
   ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 10); ctx.fill();
 
@@ -239,8 +239,7 @@ function drawBubble(charX, charY, text) {
   lines.forEach((line, i) => { ctx.fillText(line, cx, by + pad + 11 + i*22); });
   ctx.restore();
 }
-
-
+  
 function updateHearts() {
   for (let i=hearts.length-1; i>=0; i--) {
     const h=hearts[i]; h.x+=h.vx; h.y+=h.vy; h.vy+=0.2;
